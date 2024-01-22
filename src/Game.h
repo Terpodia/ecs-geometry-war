@@ -47,6 +47,9 @@ class Game {
     int m_delayNormalWeapon = 40;
     int m_lastNormalShoot = -m_delayNormalWeapon;
 
+    int m_delaySpecialWeapon = 100;
+    int m_lastSpecialShoot = -m_delaySpecialWeapon; 
+
    public:
     Game(const std::string config);
     bool init(const std::string path);

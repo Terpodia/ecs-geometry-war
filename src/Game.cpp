@@ -84,7 +84,8 @@ void Game::run() {
         if (m_currentFrame > 0) sGUI();
         if (m_currentFrame > 0) sUserInput();
         if (m_currentFrame > 0 && m_collisionSystem) sCollision();
-        if (m_currentFrame > 0 && m_enemySpawnerSystem && !m_paused) sEnemySpawner();
+        if (m_currentFrame > 0 && m_enemySpawnerSystem && !m_paused)
+            sEnemySpawner();
         if (m_currentFrame > 0 && m_movementSystem) sMovement();
         if (m_currentFrame > 0 && m_lifespanSystem) sLifespan();
         if (m_currentFrame > 0) sScore();
@@ -169,11 +170,12 @@ void Game::sUserInput() {
                 for (auto& e : m_manager.getEntities())
                     if (e->cInput) e->cInput->right = false;
             }
-            if (event.key.code == sf::Keyboard::P)
-                m_paused = !m_paused;
+            if (event.key.code == sf::Keyboard::P) m_paused = !m_paused;
         }
         if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && !m_paused)
             spawnWeapon();
+        if (sf::Mouse::isButtonPressed(sf::Mouse::Right) && !m_paused)
+            spawnSpecialWeapon();
     }
     processInput();
 }
@@ -225,8 +227,25 @@ void Game::spawnWeapon() {
     e->cLifespan = std::make_shared<CLifespan>(m_bulletConfig.L);
 }
 
+void Game::spawnSpecialWeapon() {
+    if (m_currentFrame - m_lastSpecialShoot < m_delaySpecialWeapon) return;
+    m_lastSpecialShoot = m_delaySpecialWeapon;
+    Vec2 pos = {sf::Mouse::getPosition(m_window).x,
+                sf::Mouse::getPosition(m_window).y};
+
+    auto e = m_manager.addEntity("specialbullet");
+    e->cTransform = std::make_shared<CTransform>(pos, Vec2(0, 0), 0, 0,
+                                                 m_bulletConfig.S / 2);
+    e->cShape =
+        std::make_shared<CShape>(20, 18, sf::Color(0, 0, 0, 0),
+                                 sf::Color(148, 0, 211), m_bulletConfig.OT * 2);
+    e->cCollision = std::make_shared<CCollision>(20);
+    e->cLifespan = std::make_shared<CLifespan>(m_delaySpecialWeapon);
+}
+
 void Game::sCollision() {
     for (auto& e : m_manager.getEntities()) {
+        if (e->tag() == "specialbullet") continue;
         if (e->cCollision && e->cTransform) {
             Vec2 pos = e->cTransform->pos;
             float speed = e->cTransform->speed;
@@ -284,6 +303,19 @@ void Game::sCollision() {
                 enemyDeadEffect(enemy);
                 enemy->destroy();
                 sPlayerSpawner();
+            }
+        }
+    }
+
+    for (auto& b : m_manager.getEntities("specialbullet")) {
+        for (auto& e : m_manager.getEntities()) {
+            if (e->tag() == "enemy" || e->tag() == "minienemie") {
+                Vec2 enemyPos = e->cTransform->pos;
+                Vec2 bulletPos = b->cTransform->pos;
+                float bulletRadius = b->cCollision->radius;
+                float enemyRadius = e->cCollision->radius;
+                if (enemyPos.dist(bulletPos) <= bulletRadius + enemyRadius)
+                    e->cTransform->speed /= 1.05;
             }
         }
     }
@@ -345,6 +377,12 @@ void Game::sMovement() {
             }
             e->cTransform->angle++;
         }
+    }
+    for (auto& e : m_manager.getEntities("specialbullet")) {
+        e->cCollision->radius++;
+        float radius = e->cShape->shape.getRadius();
+        e->cShape->shape.setRadius(radius + 1);
+        e->cShape->shape.setOrigin(radius, radius);
     }
 }
 

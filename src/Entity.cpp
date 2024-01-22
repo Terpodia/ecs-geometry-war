@@ -1,7 +1,6 @@
 #include "Entity.h"
 
-Entity::Entity(const std::string t, const size_t i) : m_tag(t), m_id(i) {
-}
+Entity::Entity(const std::string t, const size_t i) : m_tag(t), m_id(i) {}
 
 const bool Entity::isAlive() const { return m_alive; }
 
